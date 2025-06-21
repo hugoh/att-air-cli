@@ -1,0 +1,96 @@
+version: "3"
+
+vars:
+  COVEROUT: cover.out
+  GOBIN: $(go env GOPATH)/bin
+
+tasks:
+  default:
+    deps: [dev]
+
+  coverage:
+    summary: Generate test coverage
+    cmds:
+      - task: test
+        vars:
+          CLI_ARGS: -coverprofile={{.COVEROUT}} -covermode=atomic -coverpkg=./...
+    sources:
+      - "**/*.go"
+    generates:
+      - "{{.COVEROUT}}"
+
+  coverfunc:
+    summary: Generate test coverage function
+    deps:
+      - coverage
+    cmds:
+      - go tool cover -func={{.COVEROUT}}
+
+  covercheck:
+    summary: Check test coverage
+    deps:
+      - coverage
+    cmds:
+      - go tool github.com/vladopajic/go-test-coverage/v2 --config=./.testcoverage.yml
+
+  dev:
+    summary: Development mode
+    cmd: go run . {{.CLI_ARGS}}
+
+  build:
+    summary: Build application
+    cmd: go build -o dist/att-air-cli
+
+  clean:
+    summary: Clean the project
+    cmds:
+      - go clean
+      - rm -f {{.COVEROUT}}
+
+  fixlint:
+    summary: Fix lint issues
+    cmds:
+      - go tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint run --fix
+
+  fmt:
+    summary: Format the code
+    cmds:
+      - go tool github.com/daixiang0/gci write .
+      - go tool mvdan.cc/gofumpt -w .
+
+  tidy:
+    summary: Tidy the module
+    cmds:
+      - go mod tidy -v
+
+  depup:
+    summary: Upgrades dependencies
+    cmds:
+      - go get -u -t ./...
+      - task tidy
+
+  lint:
+    summary: Lint code
+    deps:
+      - task: runlinter
+        vars:
+          RUN: vet
+      - task: runlinter
+        vars:
+          RUN: tool honnef.co/go/tools/cmd/staticcheck
+      - task: runlinter
+        vars:
+          RUN: tool github.com/securego/gosec/v2/cmd/gosec -fmt=golint -quiet
+      - task: runlinter
+        vars:
+          RUN: tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint run
+
+  runlinter:
+    summary: Run specific linter
+    requires:
+      vars: [RUN]
+    cmd: go {{.RUN}} ./...
+
+  test:
+    summary: Run tests
+    cmd: go test ./... {{.CLI_ARGS}}

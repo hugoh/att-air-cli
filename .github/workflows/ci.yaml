@@ -1,0 +1,58 @@
+---
+name: CI
+
+on: # yamllint disable-line rule:truthy
+  push:
+  pull_request:
+
+env:
+  # renovate: datasource=golang-version depName=go
+  GO_VERSION: 1.24.4
+
+permissions: {}
+
+jobs:
+  test:
+    name: Lint and Test
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Install Task
+        uses: arduino/setup-task@v2
+      - name: Run linters
+        run: task lint
+      - name: Run tests
+        run: task test
+      - name: Generate test coverage
+        run: task coverage
+      # - name: Check test coverage
+      #   uses: vladopajic/go-test-coverage@v2
+      #   with:
+      #     config: ./.testcoverage.yml
+
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-24.04
+    needs: test
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Install Task
+        uses: arduino/setup-task@v2
+      - uses: go-semantic-release/action@v1
+        with:
+          allow-initial-development-versions: true
+          hooks: goreleaser
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
