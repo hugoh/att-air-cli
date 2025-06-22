@@ -8,6 +8,8 @@ import (
 	"att-air-cli/gateway"
 
 	"github.com/sirupsen/logrus"
+	altsrc "github.com/urfave/cli-altsrc/v3"
+	toml "github.com/urfave/cli-altsrc/v3/toml"
 	"github.com/urfave/cli/v3"
 )
 
@@ -15,27 +17,48 @@ func main() {
 	var gatewayURL string
 	var debug bool
 	var trace bool
+	var configFile string
 	var gw *gateway.GatewayClient
+
+	configSource := altsrc.NewStringPtrSourcer(&configFile)
+
+	loginFlags := []cli.Flag{
+		&cli.StringFlag{
+			Name:     "password",
+			Usage:    "Login password",
+			Sources:  cli.NewValueSourceChain(toml.TOML("login.password", configSource)),
+			Required: true,
+		},
+	}
 
 	app := &cli.Command{
 		Name:  "AT&T Air Gateway CLI",
 		Usage: "Login to the router or check compatibility",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
+				Name:        "config",
+				Aliases:     []string{"c"},
+				Usage:       "use the specified TOML configuration file",
+				Destination: &configFile,
+				TakesFile:   true,
+			},
+			&cli.StringFlag{
 				Name:        "url",
-				Usage:       "Gateway base URL",
+				Usage:       "gateway base URL",
 				Value:       "https://192.168.1.254",
+				Sources:     cli.NewValueSourceChain(toml.TOML("gateway.url", configSource)),
 				Destination: &gatewayURL,
 			},
 			&cli.BoolFlag{
 				Name:        "debug",
-				Usage:       "Enable debug mode",
+				Aliases:     []string{"d"},
+				Usage:       "enable debug mode",
 				Value:       false,
 				Destination: &debug,
 			},
 			&cli.BoolFlag{
 				Name:        "trace",
-				Usage:       "Enable trace mode",
+				Usage:       "enable trace mode",
 				Value:       false,
 				Destination: &trace,
 			},
@@ -62,13 +85,7 @@ func main() {
 			{
 				Name:  "login",
 				Usage: "Login to the gateway and exit",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "password",
-						Usage:    "Login password",
-						Required: true,
-					},
-				},
+				Flags: loginFlags,
 				Action: func(appCtx context.Context, c *cli.Command) error {
 					password := c.String("password")
 					return gw.Login(password)
@@ -77,13 +94,7 @@ func main() {
 			{
 				Name:  "reset-wan",
 				Usage: "Reset WAN connection",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "password",
-						Usage:    "Login password",
-						Required: true,
-					},
-				},
+				Flags: loginFlags,
 				Action: func(appCtx context.Context, c *cli.Command) error {
 					password := c.String("password")
 					err := gw.Login(password)
