@@ -32,8 +32,8 @@ func main() {
 	}
 
 	app := &cli.Command{
-		Name:  "AT&T Air Gateway CLI",
-		Usage: "Login to the router or check compatibility",
+		Name:  "att-air-cli",
+		Usage: "Command-Line Tool To Manage AT&T Internet Air Gateway",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "config",

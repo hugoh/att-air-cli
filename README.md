@@ -1,4 +1,4 @@
-# att-air-cli - Command Line Tool To Manage AT&T Internet Air Gateway
+# att-air-cli - Command-Line Tool To Manage AT&T Internet Air Gateway
 
 Very early but works to restart WAN connect on BGW530-900.
 
